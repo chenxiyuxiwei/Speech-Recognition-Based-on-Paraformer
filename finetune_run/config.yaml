@@ -1,0 +1,140 @@
+model: ParaformerStreaming
+model_conf:
+  ctc_weight: 0.0
+  lsm_weight: 0.1
+  length_normalized_loss: true
+  predictor_weight: 1.0
+  predictor_bias: 1
+  sampling_ratio: 0.75
+encoder: SANMEncoderChunkOpt
+encoder_conf:
+  output_size: 512
+  attention_heads: 4
+  linear_units: 2048
+  num_blocks: 50
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  attention_dropout_rate: 0.1
+  input_layer: pe_online
+  pos_enc_class: SinusoidalPositionEncoder
+  normalize_before: true
+  kernel_size: 11
+  sanm_shfit: 0
+  selfattention_layer_type: sanm
+  chunk_size:
+  - 12
+  - 15
+  stride:
+  - 8
+  - 10
+  pad_left:
+  - 0
+  - 0
+  encoder_att_look_back_factor:
+  - 4
+  - 4
+  decoder_att_look_back_factor:
+  - 1
+  - 1
+decoder: ParaformerSANMDecoder
+decoder_conf:
+  attention_heads: 4
+  linear_units: 2048
+  num_blocks: 16
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  self_attention_dropout_rate: 0.1
+  src_attention_dropout_rate: 0.1
+  att_layer_num: 16
+  kernel_size: 11
+  sanm_shfit: 5
+predictor: CifPredictorV2
+predictor_conf:
+  idim: 512
+  threshold: 1.0
+  l_order: 1
+  r_order: 1
+  tail_threshold: 0.45
+frontend: WavFrontendOnline
+frontend_conf:
+  fs: 16000
+  window: hamming
+  n_mels: 80
+  frame_length: 25
+  frame_shift: 10
+  lfr_m: 7
+  lfr_n: 6
+  cmvn_file: E:\kechuang\yugu\paraformer\paraformer_finetune\model\speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online\am.mvn
+specaug: SpecAugLFR
+specaug_conf:
+  apply_time_warp: false
+  time_warp_window: 5
+  time_warp_mode: bicubic
+  apply_freq_mask: true
+  freq_mask_width_range:
+  - 0
+  - 30
+  lfr_rate: 6
+  num_freq_mask: 1
+  apply_time_mask: true
+  time_mask_width_range:
+  - 0
+  - 12
+  num_time_mask: 1
+train_conf:
+  accum_grad: 1
+  grad_clip: 5
+  max_epoch: 50
+  val_scheduler_criterion:
+  - valid
+  - acc
+  best_model_criterion:
+  - - valid
+    - acc
+    - max
+  keep_nbest_models: 20
+  log_interval: 1
+  resume: true
+  validate_interval: 2000
+  save_checkpoint_interval: 2000
+  avg_nbest_model: 10
+  use_deepspeed: false
+  deepspeed_config: E:\kechuang\yugu\paraformer\paraformer_finetune\finetune_run
+optim: adam
+optim_conf:
+  lr: 0.0002
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 30000
+dataset: AudioDataset
+dataset_conf:
+  index_ds: IndexDSJsonl
+  batch_sampler: BatchSampler
+  batch_type: token
+  batch_size: 2000
+  max_token_length: 2048
+  buffer_size: 500
+  shuffle: true
+  num_workers: 4
+  data_split_num: 1
+  sort_size: 1024
+tokenizer: CharTokenizer
+tokenizer_conf:
+  unk_symbol: <unk>
+  split_with_space: true
+  token_list: E:\kechuang\yugu\paraformer\paraformer_finetune\model\speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online\tokens.json
+  seg_dict_file: E:\kechuang\yugu\paraformer\paraformer_finetune\model\speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online\seg_dict
+ctc_conf:
+  dropout_rate: 0.0
+  ctc_type: builtin
+  reduce: true
+  ignore_nan_grad: true
+normalize: null
+init_param: E:\kechuang\yugu\paraformer\paraformer_finetune\model\speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online\model.pt
+config: E:\kechuang\yugu\paraformer\paraformer_finetune\model\speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online\config.yaml
+is_training: true
+train_data_set_list: E:\kechuang\yugu\paraformer\paraformer_finetune\mydata\list\train.jsonl
+valid_data_set_list: E:\kechuang\yugu\paraformer\paraformer_finetune\mydata\list\val.jsonl
+output_dir: E:\kechuang\yugu\paraformer\paraformer_finetune\finetune_run
+model_path: E:\kechuang\yugu\paraformer\paraformer_finetune\model\speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online
+device: cpu
