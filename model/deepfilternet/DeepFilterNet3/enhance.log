@@ -1,0 +1,4 @@
+2024-08-28 11:10:42 | INFO     | DF | Running on torch 2.1.1
+2024-08-28 11:10:42 | INFO     | DF | Running on host chenxi
+2024-08-28 11:10:42 | INFO     | DF | Loading model settings of DeepFilterNet3
+2024-08-28 11:10:42 | INFO     | DF | Using E:\kechuang\yugu\paraformer\paraformer_finetune\deepfilternet\models\DeepFilterNet3 model at E:\kechuang\yugu\paraformer\paraformer_finetune\deepfilternet\models\DeepFilterNet3

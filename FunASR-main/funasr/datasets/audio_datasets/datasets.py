@@ -4,6 +4,13 @@ import random
 from funasr.register import tables
 from funasr.utils.load_utils import extract_fbank, load_audio_text_image_video
 
+# added
+from df.enhance import enhance, init_df
+# from df.utils import download_file
+from df.io import load_audio, save_audio
+import torchaudio
+# added
+
 
 @tables.register("dataset_classes", "AudioDataset")
 class AudioDataset(torch.utils.data.Dataset):
@@ -22,6 +29,9 @@ class AudioDataset(torch.utils.data.Dataset):
         **kwargs,
     ):
         super().__init__()
+        # added
+        self.model_path = r"E:\kechuang\yugu\paraformer\paraformer_finetune\model\deepfilternet\DeepFilterNet3\DeepFilterNet3"
+        # added
         index_ds_class = tables.index_ds_classes.get(index_ds)
         self.index_ds = index_ds_class(path, **kwargs)
         preprocessor_speech = kwargs.get("preprocessor_speech", None)
@@ -61,7 +71,22 @@ class AudioDataset(torch.utils.data.Dataset):
         # import pdb;
         # pdb.set_trace()
         source = item["source"]
+
+        # added
+        # name = source.split("\\")[-1][:-4]
+        # save_path = "E:\\kechuang\\yugu\\paraformer\\paraformer_finetune\\mydata\\tmp"
+        # print(source)
+
+        audio_PPmodel, df_state, _ = init_df(default_model=self.model_path)  # Load default model
         data_src = load_audio_text_image_video(source, fs=self.fs)
+        enhanced_audio_ = enhance(audio_PPmodel, df_state, data_src.view(1,-1))
+
+        resampler = torchaudio.transforms.Resample(df_state.sr(), self.fs)
+        enhanced_audio = resampler(enhanced_audio_)
+        # save_audio(save_path + f"\\{name}.wav", enhanced_audio_, df_state.sr())
+        data_src = enhanced_audio.view(-1)
+        # added
+        # data_src = load_audio_text_image_video(source, fs=self.fs)
         if self.preprocessor_speech:
             data_src = self.preprocessor_speech(data_src, fs=self.fs)
         speech, speech_lengths = extract_fbank(
