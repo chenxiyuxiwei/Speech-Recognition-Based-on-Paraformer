@@ -70,36 +70,71 @@ chunk2523 https://audio.yugu.net.cn/customer_audio/chunk2523.wav
 {"key": "chunk4820", "source": "https://audio.yugu.net.cn/customer_audio/chunk4820.wav", "source_len": 54, "target": "我刚才找的一个取那个线材听见响了一下怎么不知道在哪取了", "target_len": 27}
 ```
 
-1.3 模型微调
-1.3.1 模型部署
+## 二、 模型微调
+### 2.1 模型部署
 - 部署环境：
   - RTX 4090 (须保证Pytorch版本为2.0.0及以上)
   - Linux Ubantu20.04，Python 3.8，Cuda 11.8，Pytorch 2.0.0
 - 使用git clone https://github.com/alibaba-damo-academy/FunASR.git将Paraformer模型项目下载到本地。
   - FunASR-main/examples/industrial_data_pretraining路径下的 paraformer 和 paraformer_streaming 目录分别对应离线和流式模型，通过运行目录下的finetune.sh脚本启动对应模型的微调。
   - FunASR-main/data目录用于存放微调数据集，包括训练集和验证集所对应的scp文件和txt文件。
-1.3.2 预训练权重部署
+### 2.2 预训练权重部署
 将模型预训练权重文件下载到本地。相比于执行微调后将模型自动下载在固定路径，事先下载到本地能够更方便地查看和修改超参数配置文件config.yaml中的内容。
+
 - 下载方式：
-  离线模型：git clone https://www.modelscope.cn/iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch.git
-  流式模型：git clone https://www.modelscope.cn/iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online.git
+
+  离线模型：`git clone https://www.modelscope.cn/iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch.git`
+
+  流式模型：`git clone https://www.modelscope.cn/iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online.git`
+
 - 在finetune.sh文件中设置模型文件路径：(以离线模型为例)
-  自动下载：model_name_or_model_dir="iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
-  手动下载：model_name_or_model_dir="path/to/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
-1.3.3 超参数设置
+
+  自动下载：`model_name_or_model_dir="iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"`
+
+  手动下载：`model_name_or_model_dir="path/to/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"`
+
+`FunASR-main/examples/industrial_data_pretraining`路径下的**paraformer**和**paraformer_streaming**目录下，执行finetune.sh文件，分别展开对离线模型和流式模型的微调过程。
+### 2.3 超参数设置
 微调过程涉及超参数可在finetune.sh或权重目录下的config.yaml中进行设置。
+
 默认采用超参数配置如下：
-暂时无法在飞书文档外展示此内容
-1.3.4 音频预处理
-- 利用实时语音增强和降噪的深度学习框架 DeepFilterNet 对音频数据进行预处理，通过去除语音中咨询者以外人声等噪声数据和锐化咨询者的人声，提升后续语音识别模型对音频内容的识别效果。
-  DeepFilterNet安装方式：pip install deepfilternet 
-- 将音频预处理操作整合到Paraformer模型微调框架中。在datasets.py脚本中加载数据集中单个音频文件时，利用预训练的deepfilternet模型对音频数据进行去噪、增强处理，并根据音频采样率执行重采样操作。
-- 注：这里的datasets.py脚本来自于通过pip下载得到的funasr项目，而非通过git手动下载到本地的funasr。
-  路径为/.../FunASR-main/funasr/datasets/audio_datasets/datasets.py。
-1.3.5 微调执行
-- 终端执行指令：bash finetune.sh。
+
+| 超参数名称                          | 取值设置 | 解释                                                         |
+| ----------------------------------- | -------- | ------------------------------------------------------------ |
+| train_conf.max_epoch                | 50       | 最大训练轮数                                                 |
+| train_conf.val_scheduler_criterion  | acc      | 验证集上的评估指标为准确率                                   |
+| train_conf.best_model_criterion     | acc, max | 准确率越高越好                                               |
+| train_conf.keep_nbest_models        | 20       | 保存最好的n份模型权重，其中n的取值                           |
+| train_conf.validate_interval        | 2000     | 两次验证的间隔迭代次数                                       |
+| train_conf.save_checkpoint_interval | 2000     | 保存检查点的间隔迭代次数                                     |
+| optim                               | adam     | 优化器                                                       |
+| optim_conf.lr                       | 0.0002   | 学习率                                                       |
+| dataset_conf.batch_type             | token    | 动态组batch，batch总token数为batch_size                      |
+| dataset_conf.batch_size             | 200      |                                                              |
+| dataset_conf.max_token_length       | 2048     | 所允许的音频最大帧数，1帧为10ms，这里将滤除时长在20s以上的长音频。 |
+| dataset_conf.num_workers            | 4        |                                                              |
+| frontend_conf.fs                    | 16000    | 音频采样率                                                   |
+
+### 2.4 音频预处理
+- 利用实时语音增强和降噪的深度学习框架**DeepFilterNet**对音频数据进行预处理，通过去除语音中咨询者以外人声等噪声数据和锐化咨询者的人声，提升后续语音识别模型对音频内容的识别效果。
+
+  DeepFilterNet安装方式：`pip install deepfilternet`
+
+- 将音频预处理操作整合到Paraformer模型微调框架中。在[datasets.py脚本](https://github.com/chenxiyuxiwei/Speech-Recognition-Based-on-Paraformer/blob/main/FunASR-main/funasr/datasets/audio_datasets/datasets.py)中加载数据集中单个音频文件时，利用预训练的deepfilternet模型对音频数据进行去噪、增强处理，并根据音频采样率执行重采样操作。
+
+  - 注：这里的datasets.py脚本来自于通过pip下载得到的funasr项目，而非通过git手动下载到本地的funasr。
+
+    路径为`/.../FunASR-main/funasr/datasets/audio_datasets/datasets.py`。
+### 2.5 微调执行
+- 终端执行指令：`bash finetune.sh`。
+
 - 执行finetune.sh后，首先执行scp2jsonl文件，将训练集与验证集scp、txt文件转化为jsonl文件。
+
   jsonl文件展示：
-{"key": "chunk6400", "source": "https://audio.yugu.net.cn/customer_audio/chunk6400.wav", "source_len": 54, "target": "我昨天我的电池被别人给盗了然后我就联系你们客服了现在拿我电池人他联系我他一直让我给他提供验证码我就没提供给他我想知道我账号现在有什么风险", "target_len": 68}
-{"key": "chunk7292", "source": "https://audio.yugu.net.cn/customer_audio/chunk7292.wav", "source_len": 54, "target": "麻烦你这边帮我看一下我那块电瓶的活动轨迹", "target_len": 20}
+
+  ```json
+  {"key": "chunk6400", "source": "https://audio.yugu.net.cn/customer_audio/chunk6400.wav", "source_len": 54, "target": "我昨天我的电池被别人给盗了然后我就联系你们客服了现在拿我电池人他联系我他一直让我给他提供验证码我就没提供给他我想知道我账号现在有什么风险", "target_len": 68}
+  {"key": "chunk7292", "source": "https://audio.yugu.net.cn/customer_audio/chunk7292.wav", "source_len": 54, "target": "麻烦你这边帮我看一下我那块电瓶的活动轨迹", "target_len": 20}
+  ```
+
 - 在finetune.sh一系列超参数的设置条件下，执行train_ds.py脚本。
